@@ -139,7 +139,8 @@ namespace Mirror
 				RegisterHandler<ObjectSpawnFinishedMessage>(OnObjectSpawnFinished);
 				RegisterHandler<EntityStateMessage>(OnEntityStateMessage);
 			}
-			delegatesClientMessages.Invoke();
+			if (delegatesClientMessages != null)
+				delegatesClientMessages.Invoke();
 			RegisterHandler<RpcMessage>(OnRPCMessage);
 			//RegisterHandler<TransformMessage2D>(OnTransformMessage);
 		}

@@ -105,7 +105,8 @@ namespace Mirror
 
 		static void RegisterMessageHandlers()
 		{
-			delegatesServerMessages.Invoke();
+			if (delegatesServerMessages != null)
+				delegatesServerMessages.Invoke();
 			RegisterHandler<ReadyMessage>(OnClientReadyMessage);
 			RegisterHandler<CommandMessage>(OnCommandMessage);
 			RegisterHandler<NetworkPingMessage>(NetworkTime.OnServerPing, false);
