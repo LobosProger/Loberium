@@ -10,6 +10,16 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	[SerializeField] private NetworkIdentity toSendingClient;
 	[SerializeField] private bool transfer;
 
+	[Space]
+	[SerializeField] private string privateKeyOfClient;
+	[SerializeField] private string publicKeyOfClient;
+
+	private void Start()
+	{
+		publicKeyOfClient = GeneralFunctions.GenerateKeyForClient("Yarik");
+		privateKeyOfClient = GeneralFunctions.GenerateKeyForClient("Password");
+	}
+
 	private void Update()
 	{
 		if (transfer)
