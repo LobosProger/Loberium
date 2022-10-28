@@ -11,7 +11,7 @@ public class NetworkInternet : NetworkBehaviour
 		singleton = this;
 	}
 
-	[Command]
+	[Command(requiresAuthority = false)]
 	public void Cmd_SendTransaction(Transaction transactionInfo)
 	{
 		Rpc_SendToAllMinersTransaction(transactionInfo);
