@@ -15,6 +15,11 @@ public class NetworkBlockchain : NetworkBehaviour
 	public Block lastBlock => GetLastBlock();
 	public string previousHashOfLastBlock { get { if (lastBlock != null) return lastBlock.hash; else return "0"; } }
 
+	private void Start()
+	{
+		singleton = this;
+	}
+
 	private Block GetLastBlock()
 	{
 		if (!IsBlockchainInitialized())
