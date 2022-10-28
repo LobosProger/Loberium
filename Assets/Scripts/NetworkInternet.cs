@@ -12,14 +12,22 @@ public class NetworkInternet : NetworkBehaviour
 	}
 
 	[Command(requiresAuthority = false)]
-	public void Cmd_SendTransaction(Transaction transactionInfo)
+	public void Cmd_SendTransaction(NetworkIdentity fromWallet, NetworkIdentity toWallet, int amountOfTransferingCoins)
 	{
-		Rpc_SendToAllMinersTransaction(transactionInfo);
+		Rpc_SendToAllMinersTransaction(fromWallet, toWallet, amountOfTransferingCoins);
 	}
 
 	[ClientRpc]
-	public void Rpc_SendToAllMinersTransaction(Transaction transactionInfo)
+	public void Rpc_SendToAllMinersTransaction(NetworkIdentity from, NetworkIdentity to, int amount)
 	{
-		NetworkBlockchainClient.localCLient.CheckTransaction(transactionInfo);
+		Transaction transaction = new Transaction
+		{
+			fromWallet = from,
+			toWallet = to,
+			amountOfTransferingCoins = amount
+		};
+		if (from != null && to != null)
+			Debug.LogError("OK");
+		NetworkBlockchainClient.localCLient.CheckTransaction(transaction);
 	}
 }

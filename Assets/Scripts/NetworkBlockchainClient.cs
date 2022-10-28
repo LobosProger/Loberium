@@ -14,6 +14,11 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	[SerializeField] Transaction transaction;
 	[SerializeField] private bool transfer;
 
+	public override void OnStartAuthority()
+	{
+		localCLient = this;
+	}
+
 	private void Update()
 	{
 		if (transfer)
@@ -27,7 +32,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	{
 		if (currentBalance >= transaction.amountOfTransferingCoins)
 		{
-			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
+			NetworkInternet.singleton.Cmd_SendTransaction(transaction.fromWallet, transaction.toWallet, transaction.amountOfTransferingCoins);
 		}
 		else
 		{
