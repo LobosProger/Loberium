@@ -30,7 +30,7 @@ public class NetworkBlockchain : NetworkBehaviour
 
 	private bool IsBlockchainInitialized() => blockchain.Count != 0;
 
-	public bool IsTransactionValid(Transaction transaction) => GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins <= transaction.amountOfTransferingCoins && transaction.fromWallet != transaction.toWallet;
+	public bool IsTransactionValid(Transaction transaction) => (GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins >= transaction.amountOfTransferingCoins);// && transaction.fromWallet.netId != transaction.toWallet.netId;
 
 	public Balance GetBalanceOfWalletInBlockchain(NetworkIdentity gottenWallet)
 	{

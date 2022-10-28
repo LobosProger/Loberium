@@ -63,6 +63,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	{
 		if (hasAuthority && typeClient == TypeClient.Miner)
 		{
+			Debug.LogWarning(NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins);
 			if (NetworkBlockchain.singleton.IsTransactionValid(newTransaction))
 			{
 				Debug.Log("YEEEEAH! We can create new block!");
@@ -75,6 +76,11 @@ public class NetworkBlockchainClient : NetworkBehaviour
 			else
 			{
 				Debug.LogWarning("Oops! Maybe there are some errors! :(");
+				if (newTransaction.fromWallet != newTransaction.toWallet)
+					Debug.LogWarning("Adress to sending the same");
+				Debug.LogWarning(newTransaction.fromWallet.netId);
+				Debug.LogWarning(newTransaction.toWallet.netId);
+				Debug.LogWarning(NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins + " amount: " + newTransaction.amountOfTransferingCoins);
 			}
 
 		}
