@@ -5,20 +5,14 @@ using Mirror;
 using MyBox;
 public class NetworkBlockchainClient : NetworkBehaviour
 {
-	[SyncVar(hook = nameof(OnMoneyChanged))] public int currentBalance = 10;
-	[SerializeField] private int sendAmountOfCoins;
-	[SerializeField] private NetworkIdentity toSendingClient;
+	public static NetworkBlockchainClient localCLient;
+
+	[SerializeField] private int currentBalance = 10;
+	[SerializeField] private TypeClient typeClient = TypeClient.Client;
+
+	[Space(30)]
+	[SerializeField] Transaction transaction;
 	[SerializeField] private bool transfer;
-
-	[Space]
-	[SerializeField] private string privateKeyOfClient;
-	[SerializeField] private string publicKeyOfClient;
-
-	private void Start()
-	{
-		publicKeyOfClient = GeneralFunctions.GenerateKeyForClient("Yarik");
-		privateKeyOfClient = GeneralFunctions.GenerateKeyForClient("Password");
-	}
 
 	private void Update()
 	{
@@ -31,9 +25,9 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private void SendCoins()
 	{
-		if (currentBalance >= sendAmountOfCoins)
+		if (currentBalance >= transaction.amountOfTransferingCoins)
 		{
-			Cmd_SendMoney(sendAmountOfCoins, toSendingClient);
+			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
 		}
 		else
 		{
@@ -58,5 +52,31 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	private void OnMoneyChanged(int _, int newAmountOfBalance)
 	{
 
+	}
+
+	public void CheckTransaction(Transaction newTransaction)
+	{
+		if (hasAuthority && typeClient == TypeClient.Miner)
+		{
+			if (NetworkBlockchain.singleton.IsTransactionValid(newTransaction))
+			{
+				Debug.Log("YEEEEAH! We can create new block!");
+				Block creatingNewBlock = new Block(NetworkBlockchain.singleton.blockchain.Count - 1, netIdentity, newTransaction, NetworkBlockchain.singleton.previousHashOfLastBlock);
+				creatingNewBlock.hashRoot = GeneralFunctions.sha256(creatingNewBlock.index.ToString() + creatingNewBlock.timestamp + creatingNewBlock.currentTransaction + creatingNewBlock.rewardTransaction + creatingNewBlock.previousHash);
+
+				MineTheBlock(creatingNewBlock, 0);
+				NetworkBlockchain.singleton.blockchain.Add(creatingNewBlock);
+			}
+			else
+			{
+				Debug.LogWarning("Oops! Maybe there are some errors! :(");
+			}
+
+		}
+	}
+
+	private void MineTheBlock(Block block, int newNonce)
+	{
+		block.hash = GeneralFunctions.sha256(block.hashRoot + newNonce);
 	}
 }

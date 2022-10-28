@@ -17,7 +17,18 @@ public class GeneralFunctions : MonoBehaviour
 		return key.ToString();
 	}
 
-	static string sha256(string randomString)
+	public static string GenerateKeyForClient()
+	{
+		string creatingKey = SystemInfo.deviceModel + SystemInfo.deviceName + SystemInfo.deviceType + Random.Range(-2147483648, 2147483647);
+		creatingKey = sha256(creatingKey);
+		StringBuilder key = new StringBuilder();
+		for (int i = 0; i < 6; i++)
+			key.Append(creatingKey[i]);
+
+		return key.ToString();
+	}
+
+	public static string sha256(string randomString)
 	{
 		var crypt = new System.Security.Cryptography.SHA256Managed();
 		var hash = new System.Text.StringBuilder();
