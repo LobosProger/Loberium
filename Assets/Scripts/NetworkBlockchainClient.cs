@@ -2,21 +2,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
+using System;
 using MyBox;
 public class NetworkBlockchainClient : NetworkBehaviour
 {
 	public static NetworkBlockchainClient localCLient;
 
-	[SerializeField] private int currentBalance = 10;
+	[SerializeField] private Balance balanceOfWallet;
 	[SerializeField] private TypeClient typeClient = TypeClient.Client;
 
 	[Space(30)]
 	[SerializeField] Transaction transaction;
 	[SerializeField] private bool transfer;
 
+	private Stack<Transaction> poolOfTransactions = new Stack<Transaction>();
+	private bool isClientMining;
+
 	public override void OnStartAuthority()
 	{
 		localCLient = this;
+
+		//* С подкючением нового клиента к сети создаем счет по-умолчанию и присваиваем стартовое количество монет из блокчейна
+		balanceOfWallet.wallet = this.netIdentity;
+		balanceOfWallet.amountOfCoins = NetworkBlockchain.amountMoneyOfEveryClientInStartingBlockchain;
+		CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
 	}
 
 	private void Update()
@@ -30,7 +39,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private void SendCoins()
 	{
-		if (currentBalance >= transaction.amountOfTransferingCoins)
+		if (balanceOfWallet.amountOfCoins >= transaction.amountOfTransferingCoins)
 		{
 			NetworkInternet.singleton.Cmd_SendTransaction(transaction.fromWallet, transaction.toWallet, transaction.amountOfTransferingCoins);
 		}
@@ -40,19 +49,19 @@ public class NetworkBlockchainClient : NetworkBehaviour
 		}
 	}
 
-	[Command]
+	/*[Command]
 	private void Cmd_SendMoney(int amount, NetworkIdentity toSendingClient)
 	{
-		if (currentBalance >= amount)
+		if (balanceOfWallet.amountOfCoins >= amount)
 		{
-			currentBalance -= amount;
+			balanceOfWallet.amountOfCoins -= amount;
 			toSendingClient.GetComponent<NetworkBlockchainClient>().currentBalance += amount;
 		}
 		else
 		{
 			Debug.LogError("You haven't enough money!");
 		}
-	}
+	}*/
 
 	private void OnMoneyChanged(int _, int newAmountOfBalance)
 	{
@@ -63,27 +72,130 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	{
 		if (hasAuthority && typeClient == TypeClient.Miner)
 		{
-			Debug.LogWarning(NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins);
-			if (NetworkBlockchain.singleton.IsTransactionValid(newTransaction))
+			VerifyTransactionAndStartMining(newTransaction);
+		}
+	}
+
+	private void VerifyTransactionAndStartMining(Transaction newTransaction)
+	{
+		if (NetworkBlockchain.singleton.IsTransactionValid(newTransaction))
+		{
+			if (!isClientMining)
 			{
-				Debug.Log("YEEEEAH! We can create new block!");
-				Block creatingNewBlock = new Block(NetworkBlockchain.singleton.blockchain.Count - 1, netIdentity, newTransaction, NetworkBlockchain.singleton.previousHashOfLastBlock);
+				Block creatingNewBlock = new Block
+				{
+					index = NetworkBlockchain.singleton.blockchain.Count + 1,
+					timestamp = DateTime.Now.ToString(),
+					rewardTransaction = new RewardTransaction(netIdentity),
+					currentTransaction = newTransaction,
+					previousHash = NetworkBlockchain.singleton.previousHashOfLastBlock,
+				};
 				creatingNewBlock.hashRoot = GeneralFunctions.sha256(creatingNewBlock.index.ToString() + creatingNewBlock.timestamp + creatingNewBlock.currentTransaction + creatingNewBlock.rewardTransaction + creatingNewBlock.previousHash);
 
-				MineTheBlock(creatingNewBlock, 0);
-				NetworkBlockchain.singleton.blockchain.Add(creatingNewBlock);
+				isClientMining = true;
+				StartCoroutine(MiningOfBlock(creatingNewBlock));
 			}
 			else
 			{
-				Debug.LogWarning("Oops! Maybe there are some errors! :(");
-				if (newTransaction.fromWallet != newTransaction.toWallet)
-					Debug.LogWarning("Adress to sending the same");
-				Debug.LogWarning(newTransaction.fromWallet.netId);
-				Debug.LogWarning(newTransaction.toWallet.netId);
-				Debug.LogWarning(NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins + " amount: " + newTransaction.amountOfTransferingCoins);
+				Debug.Log("Add transaction into queue and then check");
+				poolOfTransactions.Push(newTransaction);
 			}
-
 		}
+		else
+		{
+			Debug.LogWarning("Oops! Maybe there are some errors! :(");
+			if (hasAuthority && typeClient == TypeClient.Miner && poolOfTransactions.Count > 0)
+			{
+				VerifyTransactionAndStartMining(poolOfTransactions.Pop());
+			}
+		}
+	}
+
+	public void CheckMinedBlockAndAddIntoBlockchain(Block minedBlock)
+	{
+		NetworkBlockchain.singleton.minedBlock = minedBlock;
+		if (IsIndexOfBlockValid(minedBlock))
+		{
+			if (NetworkBlockchain.singleton.IsTransactionValid(minedBlock.currentTransaction))
+			{
+				if (IsPreviousHashIsValid(minedBlock))
+				{
+					if (IsHashRootIsValid(minedBlock))
+					{
+						if (IsHashOfBlockIsValidAndProofed(minedBlock))
+						{
+							Debug.Log("New block is veryfied! Adding into blockchain!");
+							StopAllCoroutines();
+							NetworkBlockchain.singleton.blockchain.Add(minedBlock);
+							NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(balanceOfWallet);
+
+							CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
+
+							if (hasAuthority && typeClient == TypeClient.Miner && poolOfTransactions.Count > 0)
+							{
+								VerifyTransactionAndStartMining(poolOfTransactions.Pop());
+							}
+						}
+						else
+						{
+							Debug.Log("Invalid hash!");
+						}
+					}
+					else
+					{
+						Debug.Log("Invalid hashroot!");
+					}
+				}
+				else
+				{
+					Debug.Log("Invalid previous hash!");
+				}
+			}
+			else
+			{
+				Debug.Log("Invalid transaction!");
+			}
+		}
+		else
+		{
+			Debug.Log("Invalid index or added new block");
+			//! Invalid index or added new block
+		}
+	}
+
+	private bool IsIndexOfBlockValid(Block minedBlock) => minedBlock.index == NetworkBlockchain.singleton.blockchain.Count + 1;
+
+	private bool IsPreviousHashIsValid(Block minedBlock) => NetworkBlockchain.singleton.previousHashOfLastBlock == minedBlock.previousHash;
+
+	private bool IsHashRootIsValid(Block minedBlock) => GeneralFunctions.sha256(minedBlock.index.ToString() + minedBlock.timestamp + minedBlock.currentTransaction + minedBlock.rewardTransaction + minedBlock.previousHash) == minedBlock.hashRoot;
+
+	private bool IsHashOfBlockIsValidAndProofed(Block minedBlock) => GeneralFunctions.sha256(minedBlock.hashRoot + minedBlock.nonce) == minedBlock.hash && minedBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) == NetworkBlockchain.difficultyOfProof;
+
+
+	private IEnumerator MiningOfBlock(Block miningBlock)
+	{
+		int nonce = 0;
+		MineTheBlock(miningBlock, nonce);
+		while (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) != NetworkBlockchain.difficultyOfProof)
+		{
+			for (int i = 1; i <= 2500; i++)
+			{
+				nonce++;
+				MineTheBlock(miningBlock, nonce);
+				if (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) == NetworkBlockchain.difficultyOfProof)
+				{
+					break;
+				}
+			}
+			Debug.Log("Mining...");
+			Resources.UnloadUnusedAssets();
+			yield return new WaitForSecondsRealtime(1f);
+		}
+		Debug.Log("Block has been mined! Sharing with network!");
+		miningBlock.nonce = nonce;
+		isClientMining = false;
+		NetworkInternet.singleton.Cmd_SendMinedBlock(miningBlock);
+		//NetworkBlockchain.singleton.blockchain.Add(miningBlock);
 	}
 
 	private void MineTheBlock(Block block, int newNonce)

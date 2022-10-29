@@ -9,6 +9,10 @@ public class NetworkInternet : NetworkBehaviour
 	private void Start()
 	{
 		singleton = this;
+		/*if(isServer)
+		{
+			NetworkManager.singleton.connec
+		}*/
 	}
 
 	[Command(requiresAuthority = false)]
@@ -29,5 +33,17 @@ public class NetworkInternet : NetworkBehaviour
 		if (from != null && to != null)
 			Debug.LogError("OK");
 		NetworkBlockchainClient.localCLient.CheckTransaction(transaction);
+	}
+
+	[Command(requiresAuthority = false)]
+	public void Cmd_SendMinedBlock(Block minedBlock)
+	{
+		Rpc_SendMinedBlock(minedBlock);
+	}
+
+	[ClientRpc]
+	public void Rpc_SendMinedBlock(Block minedBlock)
+	{
+		NetworkBlockchainClient.localCLient.CheckMinedBlockAndAddIntoBlockchain(minedBlock);
 	}
 }

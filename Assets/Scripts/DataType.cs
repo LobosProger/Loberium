@@ -40,21 +40,21 @@ public class Balance
 public class Block
 {
 	public int index = 0;
-	public DateTime timestamp;
+	public string timestamp;
 	public Transaction currentTransaction;
 	public RewardTransaction rewardTransaction;
 	public string previousHash = "0";
 	public string hashRoot;
 	public int nonce = 0;
 	public string hash;
-
-	public Block(int index, NetworkIdentity rewardTransaction, Transaction currentTransaction, string previousHash = "0", int nonce = 0)
-	{
-		this.index = index;
-		this.timestamp = DateTime.Now;
-		this.rewardTransaction = new RewardTransaction(rewardTransaction);
-		this.currentTransaction = currentTransaction;
-		this.previousHash = previousHash;
-		this.nonce = nonce;
-	}
+	/*
+		public Block(int index, NetworkIdentity rewardTransaction, Transaction currentTransaction, string previousHash = "0", int nonce = 0)
+		{
+			this.index = index;
+			this.timestamp = DateTime.Now;
+			this.rewardTransaction = new RewardTransaction(rewardTransaction);
+			this.currentTransaction = currentTransaction;
+			this.previousHash = previousHash;
+			this.nonce = nonce;
+		}*/
 }

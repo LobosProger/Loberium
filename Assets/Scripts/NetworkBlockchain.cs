@@ -4,13 +4,15 @@ using UnityEngine;
 using Mirror;
 public class NetworkBlockchain : NetworkBehaviour
 {
-	public const string difficultyOfProof = "0000";
-	public const int amountMoneyOfEveryClientInStartingBlockchain = 10;
-	public const int amountRewardMoney = 50;
+	public static readonly string difficultyOfProof = "0000";
+	public static readonly int difficultyAmountOfNone = difficultyOfProof.Length;
+	public static readonly int amountMoneyOfEveryClientInStartingBlockchain = 10;
+	public static readonly int amountRewardMoney = 50;
 
 	public static NetworkBlockchain singleton;
 
 	public List<Block> blockchain = new List<Block>();
+	public Block minedBlock;
 
 	public Block lastBlock => GetLastBlock();
 	public string previousHashOfLastBlock { get { if (lastBlock != null) return lastBlock.hash; else return "0"; } }
@@ -35,12 +37,20 @@ public class NetworkBlockchain : NetworkBehaviour
 	public Balance GetBalanceOfWalletInBlockchain(NetworkIdentity gottenWallet)
 	{
 		Balance currentBalanceOfWallet = new Balance(gottenWallet, amountMoneyOfEveryClientInStartingBlockchain);
-
 		for (int i = 0; i < blockchain.Count; i++)
 		{
 			CalculateBalanceInBlock(blockchain[i], currentBalanceOfWallet);
 		}
 		return currentBalanceOfWallet;
+	}
+
+	public void GetBalanceOfWalletInBlockchain(Balance gottenWallet)
+	{
+		gottenWallet.amountOfCoins = amountMoneyOfEveryClientInStartingBlockchain;
+		for (int i = 0; i < blockchain.Count; i++)
+		{
+			CalculateBalanceInBlock(blockchain[i], gottenWallet);
+		}
 	}
 
 	private bool IsTransactionConsistsThisWallet(Transaction transaction, NetworkIdentity wallet) => transaction.fromWallet == wallet || transaction.toWallet == wallet;
@@ -64,7 +74,7 @@ public class NetworkBlockchain : NetworkBehaviour
 	{
 		if (IsTransactionConsistsThisWallet(block.currentTransaction, balance.wallet))
 			CalculateThisBalanceOnInputAndOutput(block.currentTransaction, balance);
-		else if (IsTransactionConsistsThisWallet(block.rewardTransaction, balance.wallet))
+		if (IsTransactionConsistsThisWallet(block.rewardTransaction, balance.wallet))
 			CalculateThisBalanceOnInputAndOutput(block.rewardTransaction, balance);
 	}
 }
