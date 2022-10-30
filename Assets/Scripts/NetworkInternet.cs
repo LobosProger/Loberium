@@ -12,22 +12,27 @@ public class NetworkInternet : NetworkBehaviour
 	}
 
 	[Command(requiresAuthority = false)]
-	public void Cmd_SendTransaction(NetworkIdentity fromWallet, NetworkIdentity toWallet, int amountOfTransferingCoins)
+	public void Cmd_SendTransaction(Transaction transaction)
 	{
-		Rpc_SendToAllMinersTransaction(fromWallet, toWallet, amountOfTransferingCoins);
+		StartCoroutine(SendTransactionToMiners(transaction));
 	}
 
-	[ClientRpc]
-	public void Rpc_SendToAllMinersTransaction(NetworkIdentity from, NetworkIdentity to, int amount)
+	private IEnumerator SendTransactionToMiners(Transaction transaction)
 	{
-		Transaction transaction = new Transaction
+		foreach (NetworkConnectionToClient everyConnection in NetworkServer.connections.Values)
 		{
-			fromWallet = from,
-			toWallet = to,
-			amountOfTransferingCoins = amount
-		};
-		if (from != null && to != null)
-			Debug.LogError("OK");
+			//* На первое время код подойдет, так как различные майнеры должнв получать вознаграждение случайным путем
+			//* и так как, nonce подбирается неслучайно, то элемент отправки транзакции с "задержкой"
+			//* => Это сделано для того, чтобы разные майнеры имели возможность получить награду, а не только один, так как nonce подбирается путем прибавления единицы
+			float randomTimeToSendTransaction = ((float)GeneralFunctions.GetRandomNumber(500, 2000)) / 1000;
+			yield return new WaitForSeconds(randomTimeToSendTransaction);
+			Target_SendToAllMinersTransaction(everyConnection, transaction);
+		}
+	}
+
+	[TargetRpc]
+	public void Target_SendToAllMinersTransaction(NetworkConnection connection, Transaction transaction)
+	{
 		NetworkBlockchainClient.localCLient.CheckTransaction(transaction);
 	}
 

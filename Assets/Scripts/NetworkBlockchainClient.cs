@@ -44,7 +44,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	{
 		if (balanceOfWallet.amountOfCoins >= transaction.amountOfTransferingCoins)
 		{
-			NetworkInternet.singleton.Cmd_SendTransaction(transaction.fromWallet, transaction.toWallet, transaction.amountOfTransferingCoins);
+			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
 		}
 		else
 		{
@@ -177,13 +177,13 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private IEnumerator MiningOfBlock(Block miningBlock)
 	{
-		int nonce = GeneralFunctions.GetRandomNonceForMining();
+		int nonce = 0;
 		MineTheBlock(miningBlock, nonce);
 		while (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) != NetworkBlockchain.difficultyOfProof)
 		{
-			for (int i = 1; i <= 2500; i++)
+			for (int i = 1; i <= 5000; i++)
 			{
-				nonce = GeneralFunctions.GetRandomNonceForMining();
+				nonce++;
 				MineTheBlock(miningBlock, nonce);
 				if (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) == NetworkBlockchain.difficultyOfProof)
 				{
