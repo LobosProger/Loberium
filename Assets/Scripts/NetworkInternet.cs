@@ -9,10 +9,6 @@ public class NetworkInternet : NetworkBehaviour
 	private void Start()
 	{
 		singleton = this;
-		/*if(isServer)
-		{
-			NetworkManager.singleton.connec
-		}*/
 	}
 
 	[Command(requiresAuthority = false)]

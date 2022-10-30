@@ -9,7 +9,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	public static NetworkBlockchainClient localCLient;
 
 	[SerializeField] private Balance balanceOfWallet;
-	[SerializeField] private TypeClient typeClient = TypeClient.Client;
+	[SerializeField] public TypeClient typeClient = TypeClient.Client;
 
 	[Space(30)]
 	[SerializeField] Transaction transaction;
@@ -26,6 +26,9 @@ public class NetworkBlockchainClient : NetworkBehaviour
 		balanceOfWallet.wallet = this.netIdentity;
 		balanceOfWallet.amountOfCoins = NetworkBlockchain.amountMoneyOfEveryClientInStartingBlockchain;
 		CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
+
+		if (!isServer)
+			CanvasManager.singleton.ShowRoleOnUI(typeClient);
 	}
 
 	private void Update()
@@ -174,13 +177,13 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private IEnumerator MiningOfBlock(Block miningBlock)
 	{
-		int nonce = 0;
+		int nonce = GeneralFunctions.GetRandomNonceForMining();
 		MineTheBlock(miningBlock, nonce);
 		while (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) != NetworkBlockchain.difficultyOfProof)
 		{
 			for (int i = 1; i <= 2500; i++)
 			{
-				nonce++;
+				nonce = GeneralFunctions.GetRandomNonceForMining();
 				MineTheBlock(miningBlock, nonce);
 				if (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) == NetworkBlockchain.difficultyOfProof)
 				{
@@ -195,7 +198,6 @@ public class NetworkBlockchainClient : NetworkBehaviour
 		miningBlock.nonce = nonce;
 		isClientMining = false;
 		NetworkInternet.singleton.Cmd_SendMinedBlock(miningBlock);
-		//NetworkBlockchain.singleton.blockchain.Add(miningBlock);
 	}
 
 	private void MineTheBlock(Block block, int newNonce)

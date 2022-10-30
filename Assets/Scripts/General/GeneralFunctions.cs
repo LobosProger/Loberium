@@ -6,6 +6,9 @@ using System.Text;
 
 public class GeneralFunctions : MonoBehaviour
 {
+	private static int bufferedIndexForRandom = 0;
+	private static readonly int maxBufferedIntForRandom = 2147483647;
+
 	public static string GenerateKeyForClient(string additionalData)
 	{
 		string creatingKey = SystemInfo.deviceModel + SystemInfo.deviceName + SystemInfo.deviceType + Random.Range(-2147483648, 2147483647) + additionalData;
@@ -39,4 +42,17 @@ public class GeneralFunctions : MonoBehaviour
 		}
 		return hash.ToString();
 	}
+
+	public static int GetRandomNumber(int min, int max)
+	{
+		bufferedIndexForRandom++;
+		Random.InitState((bufferedIndexForRandom + System.DateTime.UtcNow.Millisecond) * 2 - 1);
+		if (bufferedIndexForRandom == maxBufferedIntForRandom)
+			bufferedIndexForRandom = 0;
+
+		return Random.Range(min, max + 1);
+	}
+
+	public static int GetRandomNonceForMining()
+	=> GetRandomNumber(-2147483648, 2147483647);
 }
