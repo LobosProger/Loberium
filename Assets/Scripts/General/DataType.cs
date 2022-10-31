@@ -9,17 +9,24 @@ public enum TypeClient { Client, Miner }
 [System.Serializable]
 public struct Transaction
 {
-	public NetworkIdentity fromWallet;
-	public NetworkIdentity toWallet;
+	public string fromWallet;
+	public string toWallet;
 	public int amountOfTransferingCoins;
+
+	public Transaction(string fromWallet, string toWallet, int amount)
+	{
+		this.fromWallet = fromWallet;
+		this.toWallet = toWallet;
+		amountOfTransferingCoins = amount;
+	}
 }
 
 [System.Serializable]
 public struct RewardTransaction
 {
-	public NetworkIdentity toWallet;
+	public string toWallet;
 
-	public RewardTransaction(NetworkIdentity toWallet)
+	public RewardTransaction(string toWallet)
 	{
 		this.toWallet = toWallet;
 	}
@@ -27,10 +34,10 @@ public struct RewardTransaction
 [System.Serializable]
 public class Balance
 {
-	public NetworkIdentity wallet;
+	public string wallet;
 	public int amountOfCoins;
 
-	public Balance(NetworkIdentity wallet, int amountOfCoins)
+	public Balance(string wallet, int amountOfCoins)
 	{
 		this.wallet = wallet;
 		this.amountOfCoins = amountOfCoins;

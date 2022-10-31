@@ -32,9 +32,9 @@ public class NetworkBlockchain : NetworkBehaviour
 
 	private bool IsBlockchainInitialized() => blockchain.Count != 0;
 
-	public bool IsTransactionValid(Transaction transaction) => (GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins >= transaction.amountOfTransferingCoins);// && transaction.fromWallet.netId != transaction.toWallet.netId;
+	public bool IsTransactionValid(Transaction transaction) => GetBalanceOfWalletInBlockchain(transaction.fromWallet).amountOfCoins >= transaction.amountOfTransferingCoins && transaction.amountOfTransferingCoins >= 0;// && transaction.fromWallet.netId != transaction.toWallet.netId;
 
-	public Balance GetBalanceOfWalletInBlockchain(NetworkIdentity gottenWallet)
+	public Balance GetBalanceOfWalletInBlockchain(string gottenWallet)
 	{
 		Balance currentBalanceOfWallet = new Balance(gottenWallet, amountMoneyOfEveryClientInStartingBlockchain);
 		for (int i = 0; i < blockchain.Count; i++)
@@ -53,9 +53,9 @@ public class NetworkBlockchain : NetworkBehaviour
 		}
 	}
 
-	private bool IsTransactionConsistsThisWallet(Transaction transaction, NetworkIdentity wallet) => transaction.fromWallet == wallet || transaction.toWallet == wallet;
+	private bool IsTransactionConsistsThisWallet(Transaction transaction, string wallet) => transaction.fromWallet == wallet || transaction.toWallet == wallet;
 
-	private bool IsTransactionConsistsThisWallet(RewardTransaction transaction, NetworkIdentity wallet) => transaction.toWallet == wallet;
+	private bool IsTransactionConsistsThisWallet(RewardTransaction transaction, string wallet) => transaction.toWallet == wallet;
 
 	private void CalculateThisBalanceOnInputAndOutput(Transaction transaction, Balance balance)
 	{

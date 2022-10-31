@@ -23,9 +23,11 @@ public class NetworkBlockchainClient : NetworkBehaviour
 		localCLient = this;
 
 		//* С подкючением нового клиента к сети создаем счет по-умолчанию и присваиваем стартовое количество монет из блокчейна
-		balanceOfWallet.wallet = this.netIdentity;
+		balanceOfWallet.wallet = GeneralFunctions.GenerateKeyForClient();
 		balanceOfWallet.amountOfCoins = NetworkBlockchain.amountMoneyOfEveryClientInStartingBlockchain;
+
 		CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
+		CanvasManager.singleton.ShowIdOfWallet(balanceOfWallet.wallet);
 
 		if (!isServer)
 			CanvasManager.singleton.ShowRoleOnUI(typeClient);
@@ -42,6 +44,19 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private void SendCoins()
 	{
+		if (balanceOfWallet.amountOfCoins >= transaction.amountOfTransferingCoins)
+		{
+			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
+		}
+		else
+		{
+			Debug.LogError("You haven't enough money!");
+		}
+	}
+
+	public void SendCoins(string idOfWallet, int amountOfSendingMoney)
+	{
+		Transaction transaction = new Transaction(balanceOfWallet.wallet, idOfWallet, amountOfSendingMoney);
 		if (balanceOfWallet.amountOfCoins >= transaction.amountOfTransferingCoins)
 		{
 			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
@@ -89,7 +104,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 				{
 					index = NetworkBlockchain.singleton.blockchain.Count + 1,
 					timestamp = DateTime.Now.ToString(),
-					rewardTransaction = new RewardTransaction(netIdentity),
+					rewardTransaction = new RewardTransaction(balanceOfWallet.wallet),
 					currentTransaction = newTransaction,
 					previousHash = NetworkBlockchain.singleton.previousHashOfLastBlock,
 				};
