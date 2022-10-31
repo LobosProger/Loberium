@@ -16,10 +16,12 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	[SerializeField] private bool transfer;
 
 	private Stack<Transaction> poolOfTransactions = new Stack<Transaction>();
+	private AudioSource soundOfMining;
 	private bool isClientMining;
 
 	public override void OnStartAuthority()
 	{
+		soundOfMining = GetComponent<AudioSource>();
 		localCLient = this;
 
 		//* С подкючением нового клиента к сети создаем счет по-умолчанию и присваиваем стартовое количество монет из блокчейна
@@ -144,6 +146,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 						{
 							Debug.Log("New block is veryfied! Adding into blockchain!");
 							StopAllCoroutines();
+							soundOfMining.Stop();
 							NetworkBlockchain.singleton.blockchain.Add(minedBlock);
 							NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(balanceOfWallet);
 
@@ -193,6 +196,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	private IEnumerator MiningOfBlock(Block miningBlock)
 	{
 		int nonce = 0;
+		soundOfMining.Play();
 		MineTheBlock(miningBlock, nonce);
 		while (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) != NetworkBlockchain.difficultyOfProof)
 		{
