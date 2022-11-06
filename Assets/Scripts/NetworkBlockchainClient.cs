@@ -147,6 +147,7 @@ public class NetworkBlockchainClient : NetworkBehaviour
 							Debug.Log("New block is veryfied! Adding into blockchain!");
 							StopAllCoroutines();
 							soundOfMining.Stop();
+							isClientMining = false;
 							NetworkBlockchain.singleton.blockchain.Add(minedBlock);
 							NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(balanceOfWallet);
 
