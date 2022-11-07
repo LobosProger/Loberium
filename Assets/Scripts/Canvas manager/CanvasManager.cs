@@ -15,6 +15,20 @@ public class CanvasManager : MonoBehaviour
 	[SerializeField] private InputField inputID;
 	[SerializeField] private InputField inputAmount;
 	[Space]
+	[SerializeField] private Animator sentMoneyBox;
+	[SerializeField] private Animator receiveMoneyBox;
+	[SerializeField] private Animator processingNewTransactionBox;
+	[SerializeField] private Animator verifiedNewTransactionBox;
+	[SerializeField] private Animator verifiedNewTransactionAndAddIntoPoolBox;
+	[SerializeField] private Animator checkWithErrorNewTransactionBox;
+	[Space]
+	[SerializeField] private GameObject processOfMiningBox;
+	[SerializeField] private Text smallHashText;
+	[Space]
+	[SerializeField] private Animator startMineNewBlockBox;
+	[SerializeField] private Animator verifiedNewBlockBox;
+	[SerializeField] private Animator getRewardForNewMinedBlockBox;
+	[Space]
 	[SerializeField] private GameObject clientsUI;
 
 	public static CanvasManager singleton;
@@ -42,10 +56,10 @@ public class CanvasManager : MonoBehaviour
 		if (NetworkInternet.singleton.isServer)
 			return;
 
-		switch (NetworkBlockchainClient.localCLient.typeClient)
+		switch (NetworkBlockchainClient.localClient.typeClient)
 		{
-			case TypeClient.Client: NetworkBlockchainClient.localCLient.typeClient = TypeClient.Miner; ShowRoleOnUI(TypeClient.Miner); break;
-			case TypeClient.Miner: NetworkBlockchainClient.localCLient.typeClient = TypeClient.Client; ShowRoleOnUI(TypeClient.Client); break;
+			case TypeClient.Client: NetworkBlockchainClient.localClient.typeClient = TypeClient.Miner; ShowRoleOnUI(TypeClient.Miner); break;
+			case TypeClient.Miner: NetworkBlockchainClient.localClient.typeClient = TypeClient.Client; ShowRoleOnUI(TypeClient.Client); break;
 		}
 	}
 
@@ -59,6 +73,57 @@ public class CanvasManager : MonoBehaviour
 
 	public void SendTransaction()
 	{
-		NetworkBlockchainClient.localCLient.SendCoins(inputID.text, int.Parse(inputAmount.text));
+		NetworkBlockchainClient.localClient.SendCoins(inputID.text, int.Parse(inputAmount.text));
+	}
+
+	public void OnProcessingNewTransaction()
+	{
+		processingNewTransactionBox.SetTrigger("Show");
+	}
+
+	public void OnVerifiedNewTransaction()
+	{
+		verifiedNewTransactionBox.SetTrigger("Show");
+	}
+
+	public void OnVerifiedNewTransactionAndAddIntoPool()
+	{
+		verifiedNewTransactionAndAddIntoPoolBox.SetTrigger("Show");
+	}
+
+	public void OnCheckWithErrorNewTransaction()
+	{
+		checkWithErrorNewTransactionBox.SetTrigger("Show");
+	}
+
+	public void OnStartMiningBlock()
+	{
+		startMineNewBlockBox.SetTrigger("Show");
+	}
+
+	public void OnProcessOfMiningBlock(bool showBox, string smallHash)
+	{
+		processOfMiningBox.SetActive(showBox);
+		smallHashText.text = smallHash;
+	}
+
+	public void OnVerifiedNewBlock()
+	{
+		verifiedNewBlockBox.SetTrigger("Show");
+	}
+
+	public void OnSentMoney()
+	{
+		sentMoneyBox.SetTrigger("Show");
+	}
+
+	public void OnReceivedMoney()
+	{
+		receiveMoneyBox.SetTrigger("Show");
+	}
+
+	public void OnReceivedRewardForMinedBlock()
+	{
+		getRewardForNewMinedBlockBox.SetTrigger("Show");
 	}
 }

@@ -4,16 +4,16 @@ using UnityEngine;
 using Mirror;
 using System;
 using MyBox;
+using System.Text;
 public class NetworkBlockchainClient : NetworkBehaviour
 {
-	public static NetworkBlockchainClient localCLient;
+	public static NetworkBlockchainClient localClient;
 
-	[SerializeField] private Balance balanceOfWallet;
-	[SerializeField] public TypeClient typeClient = TypeClient.Client;
+	private Balance balanceOfWallet;
+	[HideInInspector] public TypeClient typeClient = TypeClient.Client;
 
-	[Space(30)]
-	[SerializeField] Transaction transaction;
-	[SerializeField] private bool transfer;
+	private Transaction transaction;
+	private bool transfer;
 
 	private Stack<Transaction> poolOfTransactions = new Stack<Transaction>();
 	private AudioSource soundOfMining;
@@ -22,11 +22,10 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	public override void OnStartAuthority()
 	{
 		soundOfMining = GetComponent<AudioSource>();
-		localCLient = this;
+		localClient = this;
 
 		//* С подкючением нового клиента к сети создаем счет по-умолчанию и присваиваем стартовое количество монет из блокчейна
-		balanceOfWallet.wallet = GeneralFunctions.GenerateKeyForClient();
-		balanceOfWallet.amountOfCoins = NetworkBlockchain.amountMoneyOfEveryClientInStartingBlockchain;
+		balanceOfWallet = new Balance(GeneralFunctions.GenerateKeyForClient(), NetworkBlockchain.amountMoneyOfEveryClientInStartingBlockchain);
 
 		CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
 		CanvasManager.singleton.ShowIdOfWallet(balanceOfWallet.wallet);
@@ -59,47 +58,25 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	public void SendCoins(string idOfWallet, int amountOfSendingMoney)
 	{
 		Transaction transaction = new Transaction(balanceOfWallet.wallet, idOfWallet, amountOfSendingMoney);
-		if (balanceOfWallet.amountOfCoins >= transaction.amountOfTransferingCoins)
-		{
-			NetworkInternet.singleton.Cmd_SendTransaction(transaction);
-		}
-		else
-		{
-			Debug.LogError("You haven't enough money!");
-		}
-	}
-
-	/*[Command]
-	private void Cmd_SendMoney(int amount, NetworkIdentity toSendingClient)
-	{
-		if (balanceOfWallet.amountOfCoins >= amount)
-		{
-			balanceOfWallet.amountOfCoins -= amount;
-			toSendingClient.GetComponent<NetworkBlockchainClient>().currentBalance += amount;
-		}
-		else
-		{
-			Debug.LogError("You haven't enough money!");
-		}
-	}*/
-
-	private void OnMoneyChanged(int _, int newAmountOfBalance)
-	{
-
+		NetworkInternet.singleton.Cmd_SendTransaction(transaction);
 	}
 
 	public void CheckTransaction(Transaction newTransaction)
 	{
 		if (hasAuthority && typeClient == TypeClient.Miner)
 		{
-			VerifyTransactionAndStartMining(newTransaction);
+			StartCoroutine(VerifyTransactionAndStartMining(newTransaction));
 		}
 	}
 
-	private void VerifyTransactionAndStartMining(Transaction newTransaction)
+	private IEnumerator VerifyTransactionAndStartMining(Transaction newTransaction)
 	{
+		OnProcessingNewTransaction();
+		yield return new WaitForSeconds(3f);
 		if (NetworkBlockchain.singleton.IsTransactionValid(newTransaction))
 		{
+			OnVerifiedNewTransaction();
+			yield return new WaitForSeconds(3f);
 			if (!isClientMining)
 			{
 				Block creatingNewBlock = new Block
@@ -119,19 +96,22 @@ public class NetworkBlockchainClient : NetworkBehaviour
 			{
 				Debug.Log("Add transaction into queue and then check");
 				poolOfTransactions.Push(newTransaction);
+				OnVerifiedNewTransactionAndAddIntoPool();
 			}
 		}
 		else
 		{
 			Debug.LogWarning("Oops! Maybe there are some errors! :(");
+			OnCheckWithErrorNewTransaction();
+			yield return new WaitForSeconds(3f);
 			if (hasAuthority && typeClient == TypeClient.Miner && poolOfTransactions.Count > 0)
 			{
-				VerifyTransactionAndStartMining(poolOfTransactions.Pop());
+				StartCoroutine(VerifyTransactionAndStartMining(poolOfTransactions.Pop()));
 			}
 		}
 	}
 
-	public void CheckMinedBlockAndAddIntoBlockchain(Block minedBlock)
+	public IEnumerator CheckMinedBlockAndAddIntoBlockchain(Block minedBlock)
 	{
 		NetworkBlockchain.singleton.minedBlock = minedBlock;
 		if (IsIndexOfBlockValid(minedBlock))
@@ -148,14 +128,27 @@ public class NetworkBlockchainClient : NetworkBehaviour
 							StopAllCoroutines();
 							soundOfMining.Stop();
 							isClientMining = false;
+							OnProcessOfMiningBlock(false, "");
+							OnVerifiedNewBlock();
+							yield return new WaitForSeconds(3f);
+
+							if (minedBlock.currentTransaction.fromWallet == balanceOfWallet.wallet)
+								OnSentMoney();
+							if (minedBlock.currentTransaction.toWallet == balanceOfWallet.wallet)
+								OnReceivedMoney();
+
 							NetworkBlockchain.singleton.blockchain.Add(minedBlock);
 							NetworkBlockchain.singleton.GetBalanceOfWalletInBlockchain(balanceOfWallet);
-
 							CanvasManager.singleton.ShowAmountOfCoins(balanceOfWallet.amountOfCoins);
 
+							yield return new WaitForSeconds(3f);
+							if (minedBlock.rewardTransaction.toWallet == balanceOfWallet.wallet)
+								OnReceivedRewardForMinedBlock();
+
+							yield return new WaitForSeconds(3f);
 							if (hasAuthority && typeClient == TypeClient.Miner && poolOfTransactions.Count > 0)
 							{
-								VerifyTransactionAndStartMining(poolOfTransactions.Pop());
+								StartCoroutine(VerifyTransactionAndStartMining(poolOfTransactions.Pop()));
 							}
 						}
 						else
@@ -196,6 +189,8 @@ public class NetworkBlockchainClient : NetworkBehaviour
 
 	private IEnumerator MiningOfBlock(Block miningBlock)
 	{
+		OnStartMiningBlock();
+		yield return new WaitForSeconds(3f);
 		int nonce = 0;
 		soundOfMining.Play();
 		MineTheBlock(miningBlock, nonce);
@@ -205,6 +200,17 @@ public class NetworkBlockchainClient : NetworkBehaviour
 			{
 				nonce++;
 				MineTheBlock(miningBlock, nonce);
+
+				if (i % 500 == 0)
+				{
+					StringBuilder smallHashForShowingInBox = new StringBuilder();
+					for (int index = 0; index < 8; index++)
+						smallHashForShowingInBox.Append(miningBlock.hash[index]);
+
+					OnProcessOfMiningBlock(true, smallHashForShowingInBox.ToString());
+					yield return new WaitForSecondsRealtime(0.1f);
+				}
+
 				if (miningBlock.hash.Substring(0, NetworkBlockchain.difficultyAmountOfNone) == NetworkBlockchain.difficultyOfProof)
 				{
 					break;
@@ -212,9 +218,17 @@ public class NetworkBlockchainClient : NetworkBehaviour
 			}
 			Debug.Log("Mining...");
 			Resources.UnloadUnusedAssets();
+
+			StringBuilder smallHash = new StringBuilder();
+			for (int index = 0; index < 8; index++)
+				smallHash.Append(miningBlock.hash[index]);
+
+			OnProcessOfMiningBlock(true, smallHash.ToString());
+
 			yield return new WaitForSecondsRealtime(1f);
 		}
 		Debug.Log("Block has been mined! Sharing with network!");
+		OnProcessOfMiningBlock(false, "");
 		miningBlock.nonce = nonce;
 		isClientMining = false;
 		NetworkInternet.singleton.Cmd_SendMinedBlock(miningBlock);
@@ -223,5 +237,55 @@ public class NetworkBlockchainClient : NetworkBehaviour
 	private void MineTheBlock(Block block, int newNonce)
 	{
 		block.hash = GeneralFunctions.sha256(block.hashRoot + newNonce);
+	}
+
+	private void OnProcessingNewTransaction()
+	{
+		CanvasManager.singleton.OnProcessingNewTransaction();
+	}
+
+	private void OnVerifiedNewTransaction()
+	{
+		CanvasManager.singleton.OnVerifiedNewTransaction();
+	}
+
+	private void OnVerifiedNewTransactionAndAddIntoPool()
+	{
+		CanvasManager.singleton.OnVerifiedNewTransactionAndAddIntoPool();
+	}
+
+	private void OnCheckWithErrorNewTransaction()
+	{
+		CanvasManager.singleton.OnCheckWithErrorNewTransaction();
+	}
+
+	private void OnStartMiningBlock()
+	{
+		CanvasManager.singleton.OnStartMiningBlock();
+	}
+
+	private void OnProcessOfMiningBlock(bool showBox, string hash)
+	{
+		CanvasManager.singleton.OnProcessOfMiningBlock(showBox, hash);
+	}
+
+	private void OnVerifiedNewBlock()
+	{
+		CanvasManager.singleton.OnVerifiedNewBlock();
+	}
+
+	private void OnSentMoney()
+	{
+		CanvasManager.singleton.OnSentMoney();
+	}
+
+	private void OnReceivedMoney()
+	{
+		CanvasManager.singleton.OnReceivedMoney();
+	}
+
+	private void OnReceivedRewardForMinedBlock()
+	{
+		CanvasManager.singleton.OnReceivedRewardForMinedBlock();
 	}
 }

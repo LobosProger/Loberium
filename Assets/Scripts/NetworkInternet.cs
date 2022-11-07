@@ -33,7 +33,7 @@ public class NetworkInternet : NetworkBehaviour
 	[TargetRpc]
 	public void Target_SendToAllMinersTransaction(NetworkConnection connection, Transaction transaction)
 	{
-		NetworkBlockchainClient.localCLient.CheckTransaction(transaction);
+		NetworkBlockchainClient.localClient.CheckTransaction(transaction);
 	}
 
 	[Command(requiresAuthority = false)]
@@ -45,6 +45,6 @@ public class NetworkInternet : NetworkBehaviour
 	[ClientRpc]
 	public void Rpc_SendMinedBlock(Block minedBlock)
 	{
-		NetworkBlockchainClient.localCLient.CheckMinedBlockAndAddIntoBlockchain(minedBlock);
+		StartCoroutine(NetworkBlockchainClient.localClient.CheckMinedBlockAndAddIntoBlockchain(minedBlock));
 	}
 }
